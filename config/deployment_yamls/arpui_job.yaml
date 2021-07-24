@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: outbound-model-pipeline-arpu-train
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: outbound-model
+          image: jkieley/scaling-overflower-experiment-scheduling-ml-workload-outbound_model_12_pipeline_arpu_inference:latest
+          env:
+            - name: INPUT_CSV_FILE_PATH
+              value: "/app/mnt/export_09292018.csv"
+            - name: INPUT_CSV_FILE_NAME
+              value: "export_09292018.csv"
+            - name: OUTPUT_MODEL_FOLDER_PATH
+              value: /app/mnt
+            - name: OUTPUT_FILE_SUFFIX
+              value: {{runId}}
+            - name: AWS_SERVER_PUBLIC_KEY
+              value: "$AWS_KEY"
+            - name: AWS_SERVER_SECRET_KEY
+              value: "$AWS_ACCESS_KEY"
+            - name: REGION_NAME
+              value: us-east-1
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: test-volume
+              mountPath: "/app/mnt"
+          resources:
+            limits:
+              memory: "1100Mi"
+              cpu: "2"
+            requests:
+              memory: "1100Mi"
+              cpu: "2"
+      restartPolicy: Never
+      volumes:
+        - name: test-volume
+          hostPath:
+            path: /to-mount-data-dir
+            type: DirectoryOrCreate
+        - name: output-volume
+          emptyDir: { }
+  backoffLimit: 20
